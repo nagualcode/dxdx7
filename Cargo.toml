@@ -1,0 +1,61 @@
+[package]
+name = "dxdx7"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "Yamaha DX7 for modern DAWs: a Rust port of Dexed with a DX7 hardware output model, built with truce"
+authors = ["Jardim Sonoro"]
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[[bin]]
+name = "dxdx7-standalone"
+path = "src/main.rs"
+required-features = ["standalone"]
+
+[[example]]
+name = "render"
+path = "examples/render.rs"
+
+# VST3 + AU are what Ableton Live loads on macOS; CLAP for Bitwig/Reaper.
+[features]
+default = ["clap", "vst3", "au", "standalone"]
+clap = ["dep:truce-clap", "dep:clap-sys"]
+vst3 = ["dep:truce-vst3"]
+au = ["dep:truce-au"]
+standalone = ["dep:truce-standalone"]
+shell = ["truce/shell"]
+# Flags any allocation the DSP makes on the audio thread in `process`.
+# Dev/test only: `cargo test --features rt-paranoid`.
+rt-paranoid = ["truce/rt-paranoid"]
+
+[dependencies]
+truce = { version = "6.3" }
+truce-core = { version = "6.3" }
+truce-params = { version = "6.3" }
+truce-egui = { version = "6.3" }
+truce-font = { version = "6.3" }
+egui = "0.34"
+truce-clap = { version = "6.3", optional = true }
+truce-vst3 = { version = "6.3", optional = true }
+truce-au = { version = "6.3", optional = true }
+truce-standalone = { version = "6.3", features = ["gui"], optional = true }
+clap-sys = { version = "0.5", optional = true }
+rfd = "0.15"
+
+[dev-dependencies]
+truce-test = { version = "6.3" }
+hound = "3"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "thin"
+
+[profile.dev]
+opt-level = 2
+
+# Custom profile for `cargo truce install --shell` (hot reload).
+[profile.shell]
+inherits = "release"
