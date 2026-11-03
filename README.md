@@ -51,6 +51,7 @@ Ableton Live: *Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*.
 | STORE | Write the edited voice into the current cartridge slot. |
 | VOICE | Export the current voice as a single-voice SysEx. |
 | INIT | DX7 INIT VOICE. |
+| MODERN / MARK I / DX7 VINTAGE | Sound engine, see below. |
 
 MIDI program changes pick a voice from the current cartridge, and a
 single-voice SysEx dump sent over MIDI is loaded. Pitch bend, mod wheel
@@ -70,29 +71,32 @@ as on Dexed; their pitch / amp / EG-bias routing is in CONTROLLERS.
   sync and transpose below it.
 - **LFO**, **Pitch EG**, **Master** (output, Dexed's cutoff / resonance
   filter, tuning, voices, mono, velocity scale) and **Controllers**.
-- **DX7 Hardware Model**: switches for the parts of the hardware model
-  (FILTER, PITCH, CARR, LFO) and the HISS / DRIVE / TOLERANCE amounts.
+- **DX7 Hardware Model** (active with the DX7 VINTAGE engine): the DAC
+  mode, switches for the parts of the hardware model (FILTER, PITCH, CARR,
+  LFO) and the HISS / DRIVE / TOLERANCE amounts.
 
 Drag to change, Shift-drag for fine steps, double-click to reset, mouse
 wheel for single steps.
 
-## Engine
+## Engines
 
-DXDX7 runs one engine, **DX7 Vintage**: Dexed's "Mark I" core (log-sine /
-exp tables like the OPS chip) plus the model of the DX7 hardware below,
-with the DX7 Mark I gain-ranged DAC.
-
-Two more engines and two more DAC modes are still in the code and reachable
-through host automation (parameters *Engine* and *DAC*), but they are not
-on the panel. Their UI is commented out in `src/ui/mod.rs` and can be
-brought back:
-
-| Hidden option | What it is |
+| Engine | What it is |
 |---|---|
-| Engine **Modern** | Dexed's "Modern" core (msfa): high-resolution sine, linear gain, host sample rate. |
-| Engine **Mark I** | Dexed's default engine: the Mark I core at the host sample rate, without the hardware model. |
-| DAC **Clean** | No converter quantisation. |
-| DAC **12-bit flat** | Linear 12-bit without gain ranging; no DX7 did this, it is a lo-fi comparison. |
+| **Modern** | Dexed's "Modern" core (msfa): high-resolution sine, linear gain, host sample rate. |
+| **Mark I** | Dexed's default engine: log-sine / exp tables like the OPS chip, at the host sample rate, without the hardware model. Sounds like Dexed. |
+| **DX7 Vintage** (default) | The Mark I core plus the DX7 hardware model below. |
+
+The **DAC** selector (DX7 Vintage only) picks the converter:
+
+| DAC | What it is |
+|---|---|
+| **Clean** | No converter quantisation: the rest of the hardware model without the DAC grain. |
+| **Mk I** (default) | The DX7 Mark I converter: 12-bit with an analog gain stage, per voice (see below). |
+| **12-bit** | Linear 12-bit without gain ranging. No DX7 did this; a lo-fi comparison. |
+
+"Mark I" means two things here: the engine button is Dexed's name for its
+chip-accurate core, the DAC mode is the converter of the original DX7
+(Mark I, as opposed to the DX7 II).
 
 ### The DX7 hardware model
 
@@ -106,7 +110,7 @@ firmware and Yamaha's patents. Details and sources are in
 |---|---|---|
 | Clock | 9.4265 MHz / 192 = **49,096 Hz** sample rate. FM aliasing folds around 24.55 kHz, so inharmonic alias tones land where they do on the real unit. | The FM core runs at 49,096 Hz and is resampled to the host rate. |
 | Carrier scaling (**CARR**) | Each carrier is attenuated by log2(number of carriers) in the log domain (US 4,554,857 "COM"). Six-carrier algorithms are 15.8 dB quieter per carrier, and a carrier's own feedback is weaker (why Dexed's algorithm 32 feedback is "too strong", Dexed #146). | Applied before the exp lookup, exactly where the chip does it. |
-| DAC | Each voice is converted on its own: 15-bit value into a 12-bit BA9221 DAC shifted by 0-3 bits, with an analog /1../8 ladder: sign + 11-bit mantissa + 2-bit exponent. The grain rises and falls with each voice's level. | Per voice, then voices summed (as the analog S&H does). Always on. |
+| DAC | Each voice is converted on its own: 15-bit value into a 12-bit BA9221 DAC shifted by 0-3 bits, with an analog /1../8 ladder: sign + 11-bit mantissa + 2-bit exponent. The grain rises and falls with each voice's level. | Per voice, then voices summed (as the analog S&H does). CLEAN and flat 12-BIT are there for comparison. |
 | Sample-and-hold | The DAC holds every sample: sin(x)/x droop, -1.4 dB at 15 kHz. | Built into the resampling kernel. |
 | Output filter (**FILTER**) | Passive pole + two Sallen-Key stages, 5th order: 6.8 kHz, 11.6 kHz Q 1.02, 16.1 kHz Q 4.13 - flat to 5 kHz, +0.8 dB at 15 kHz, -3 dB at 17 kHz, -14 dB at 20 kHz. | Designed into the resampler's FIR from the analog response, so it is correct at 44.1 and 48 kHz (a bilinear IIR is 8 dB off at 15 kHz there). |
 | Tuning (**PITCH**) | Pitch is 1024 steps/octave (1.17 cents). The key code gives 3 semitones per 256 steps, so the 2nd and 3rd semitone of each minor third are 0.39 and 0.78 cents flat. Ratios are rounded log values: x5 is +0.41 cents, x11 is -0.54 cents, so "harmonic" partials slowly beat. | Firmware coarse/fine/fixed tables and the key-code pattern; A4 stays 440 Hz. |
