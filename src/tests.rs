@@ -233,6 +233,53 @@ fn polyphony_limit() {
     assert!(e.active_voices() <= 4);
 }
 
+#[test]
+fn note_off_survives_a_transpose_change() {
+    // A held note must stop even if the new preset has another transpose
+    // (this stranded voices: note-off looked for key + new transpose).
+    for kind in [EngineSw::MarkI, EngineSw::Vintage] {
+        let mut e = engine(kind);
+        e.set_patch(&sysex::init_voice());
+        e.note_on(60, 100);
+        render(&mut e, 2048);
+        let mut v = sysex::init_voice();
+        v[144] = 36; // TRANSPOSE C4 (+12)
+        e.set_patch(&v);
+        e.note_off(60);
+        render(&mut e, SR as usize);
+        assert_eq!(e.active_voices(), 0, "engine {}", kind as u32);
+    }
+}
+
+#[test]
+fn reset_voices_silences_everything() {
+    let mut e = engine(EngineSw::Vintage);
+    let c = cartridges::builtin(cartridges::ROM1A);
+    e.set_patch(&c.voice(16)); // E.ORGAN 1: sustains forever while held
+    e.control_change(64, 127); // sustain pedal down
+    for n in [48, 55, 60, 64, 67] {
+        e.note_on(n, 100);
+    }
+    let before = render(&mut e, 4800);
+    assert!(before.iter().any(|x| x.abs() > 0.01));
+    e.reset_voices();
+    let fade = render(&mut e, 480); // 10 ms
+    assert_eq!(e.active_voices(), 0);
+    // A fade, not a cut: no sample-to-sample jump bigger than the signal moves anyway.
+    let step = fade.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0, f32::max);
+    let sig = before.windows(2).map(|w| (w[1] - w[0]).abs()).fold(0.0, f32::max);
+    assert!(step <= sig * 1.5, "reset clicks: {step} vs {sig}");
+    // Only the DC blockers settling remain (as after any note ends).
+    let tail = render(&mut e, 4800);
+    let late = tail[1440..].iter().fold(0.0f32, |a, x| a.max(x.abs()));
+    assert!(late < 1e-3, "sound after reset: {late}");
+    // The next note plays normally.
+    e.control_change(64, 0);
+    e.set_patch(&sysex::init_voice());
+    e.note_on(69, 100);
+    assert!(render(&mut e, 4800).iter().any(|x| x.abs() > 0.01));
+}
+
 // ---------------------------------------------------------------------------
 // Plugin-level
 // ---------------------------------------------------------------------------

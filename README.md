@@ -44,7 +44,7 @@ Ableton Live: *Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*.
 | Control | What it does |
 |---|---|
 | Cartridge menu | The built-in banks: DX7_ROM1A..4B (Yamaha factory), Dexed_01, SynprezFM_01..32. A new instance opens on DX7_ROM1A. |
-| ◀ program ▶ | Pick one of the cartridge's 32 voices. |
+| ◀ program ▶ | Pick one of the cartridge's 32 voices. Changing preset (here, by MIDI program change, LOAD or INIT) fades out every sounding note in 5 ms, so nothing of the old sound keeps ringing. |
 | NAME | The voice name (10 characters, saved with STORE / VOICE). |
 | LOAD | Open a `.syx`: a cartridge replaces the bank, a single voice replaces the current voice. Checksum errors and raw (headerless) banks are accepted, as in Dexed. |
 | SAVE | Write the current cartridge as a standard DX7 bulk dump. |

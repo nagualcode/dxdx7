@@ -145,6 +145,9 @@ fn store_voice(p: &DxParams, v: &sysex::Voice) {
 // Plugin
 // ---------------------------------------------------------------------------
 
+/// This many voice bytes changing in one block counts as a preset change.
+const PRESET_CHANGE_BYTES: usize = 8;
+
 pub struct DxDx7 {
     engine: Box<Engine>,
     voice: sysex::Voice,
@@ -163,6 +166,13 @@ impl DxDx7 {
         let mut v = self.voice;
         params.read_voice(&mut v);
         if v[..145] != self.voice[..145] || v[155] != self.voice[155] {
+            // A new preset (program change, cartridge browser, LOAD, INIT)
+            // rewrites many bytes at once; a knob moves one. Silence the old
+            // sound on preset changes so nothing keeps ringing.
+            let changed = v[..145].iter().zip(&self.voice[..145]).filter(|(a, b)| a != b).count();
+            if changed >= PRESET_CHANGE_BYTES {
+                self.engine.reset_voices();
+            }
             self.voice = v;
             self.engine.set_patch(&v);
         }

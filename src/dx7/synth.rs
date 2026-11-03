@@ -12,6 +12,11 @@ pub const MAX_VOICES: usize = 16;
 
 #[derive(Clone, Copy, Default)]
 struct Voice {
+    /// The MIDI key as played, before the patch transpose. Note-off is
+    /// matched on this, so a preset with another transpose cannot strand
+    /// a held note.
+    key: i32,
+    /// The note that sounds (key + transpose).
     midi_note: i32,
     velocity: i32,
     keydown: bool,
@@ -149,7 +154,8 @@ impl Synth {
             self.note_off(pitch);
             return;
         }
-        let pitch = (i32::from(pitch) + self.transpose()).clamp(0, 127);
+        let key = i32::from(pitch);
+        let pitch = (key + self.transpose()).clamp(0, 127);
         let velo = i32::from(velo);
         let nv = self.polyphony.clamp(1, MAX_VOICES);
         if self.current >= nv {
@@ -193,6 +199,7 @@ impl Synth {
         let osc_sync = self.patch[136] != 0;
         {
             let v = &mut self.voices[note];
+            v.key = key;
             v.midi_note = pitch;
             v.velocity = velo;
             v.sustained = self.sustain;
@@ -250,8 +257,8 @@ impl Synth {
     }
 
     pub fn note_off(&mut self, pitch: u8) {
-        let pitch = (i32::from(pitch) + self.transpose()).clamp(0, 127);
-        let Some(note) = self.voices.iter().position(|v| v.midi_note == pitch && v.keydown) else {
+        let key = i32::from(pitch);
+        let Some(note) = self.voices.iter().position(|v| v.key == key && v.keydown) else {
             return;
         };
         self.voices[note].keydown = false;
@@ -293,6 +300,7 @@ impl Synth {
 
     pub fn panic(&mut self) {
         for v in self.voices.iter_mut() {
+            v.key = -1;
             v.midi_note = -1;
             v.keydown = false;
             v.live = false;

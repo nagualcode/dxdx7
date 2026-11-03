@@ -129,6 +129,11 @@ impl Resampler {
 
     /// Produce one host-rate sample, pulling core-rate samples from `pull`.
     #[inline]
+    /// Forget buffered input (after all voices were cut).
+    pub fn clear(&mut self) {
+        self.hist = [0.0; HIST];
+    }
+
     pub fn next(&mut self, mut pull: impl FnMut() -> f32) -> f32 {
         self.frac += self.ratio;
         while self.frac >= 1.0 {

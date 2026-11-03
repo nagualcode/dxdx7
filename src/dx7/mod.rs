@@ -97,6 +97,9 @@ impl Default for Settings {
 /// Mark I / Dexed, so switching engines doesn't jump in level.
 const VINT_SCALE: f32 = 0.25 / 16384.0;
 
+/// Fade-out before voices are freed on a preset change (no click).
+const RESET_FADE_SECS: f64 = 0.005;
+
 pub struct Engine {
     host_sr: f64,
     settings: Settings,
@@ -106,6 +109,9 @@ pub struct Engine {
     fx: PluginFx,
     resampler: Resampler,
     analog: Analog,
+    /// Samples left in a voice reset fade-out (0 = none running).
+    fade: u32,
+    fade_len: u32,
 }
 
 impl Default for Engine {
@@ -129,6 +135,8 @@ impl Engine {
             fx: PluginFx::new(host_sr as f32),
             resampler: Resampler::new(DX7_SAMPLE_RATE, host_sr, vintage::output_filter_response),
             analog: Analog::new(host_sr),
+            fade: 0,
+            fade_len: ((host_sr * RESET_FADE_SECS) as u32).max(1),
         }
     }
 
@@ -226,7 +234,37 @@ impl Engine {
 
     // ---------------- MIDI ----------------
 
+    /// Stop every voice for a preset change: a short fade-out, then all
+    /// voices are freed (sustain included). Notes played after the fade use
+    /// the new preset.
+    pub fn reset_voices(&mut self) {
+        if self.synth.active_voices() == 0 {
+            self.synth.panic();
+        } else if self.fade == 0 {
+            self.fade = self.fade_len;
+        }
+    }
+
+    /// Finish a running reset fade at once.
+    fn finish_fade(&mut self) {
+        if self.fade > 0 {
+            self.fade = 0;
+            self.cut_voices();
+        }
+    }
+
+    /// Free all voices and drop the audio already rendered from them (the
+    /// rest of the current block and the resampler history), so nothing of
+    /// the old sound plays after the fade.
+    fn cut_voices(&mut self) {
+        self.synth.panic();
+        self.block.mix = [0.0; N];
+        self.block.vint = [0.0; N];
+        self.resampler.clear();
+    }
+
     pub fn note_on(&mut self, note: u8, velocity: u8) {
+        self.finish_fade();
         let v = if self.settings.vel_dx7 { (f32::from(velocity) * 0.787_401_6) as u8 } else { velocity };
         self.synth.note_on(note, v.max(1));
     }
@@ -304,6 +342,15 @@ impl Engine {
                 self.analog.process(x)
             }
         };
-        self.fx.process(y)
+        let y = self.fx.process(y);
+        if self.fade > 0 {
+            let g = self.fade as f32 / self.fade_len as f32;
+            self.fade -= 1;
+            if self.fade == 0 {
+                self.cut_voices();
+            }
+            return y * g * g;
+        }
+        y
     }
 }
