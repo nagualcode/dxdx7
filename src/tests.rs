@@ -96,6 +96,17 @@ fn cartridge_round_trip() {
 }
 
 #[test]
+fn factory_roms_are_built_in() {
+    assert_eq!(cartridges::BUILTIN[cartridges::ROM1A].0, "DX7_ROM1A");
+    let c = cartridges::builtin(cartridges::ROM1A);
+    // The famous ones: E.PIANO 1 is ROM1A #11, BASS 1 #15.
+    assert_eq!(c.name(10).trim_end(), "E.PIANO 1");
+    assert_eq!(c.name(14).trim_end(), "BASS    1");
+    let c = cartridges::builtin(cartridges::ROM1A + 3); // ROM2B
+    assert_eq!(c.name(13).trim_end(), "SYN-ORCH");
+}
+
+#[test]
 fn single_voice_sysex_round_trip() {
     let c = cartridges::builtin(0);
     let v = c.voice(5);

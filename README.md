@@ -14,7 +14,8 @@ flat, Ableton-style panel with the whole voice on one screen.
 
 - Formats: **AU**, **VST3**, **CLAP** (macOS; builds on Windows/Linux from source)
 - Reads and writes DX7 / Dexed SysEx: 32-voice cartridges (VMEM, 4104 bytes) and single voices (VCED)
-- The 33 cartridges Dexed ships with (1056 voices) are built in
+- 41 cartridges built in (1312 voices): the eight Yamaha DX7 factory ROMs
+  and the 33 banks Dexed ships with
 - Every voice parameter is an automatable host parameter with real units
 
 ## Install (macOS)
@@ -42,7 +43,7 @@ Ableton Live: *Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*.
 
 | Control | What it does |
 |---|---|
-| Cartridge menu | The built-in banks (Dexed_01, SynprezFM_01..32). |
+| Cartridge menu | The built-in banks: DX7_ROM1A..4B (Yamaha factory), Dexed_01, SynprezFM_01..32. A new instance opens on DX7_ROM1A. |
 | ◀ program ▶ | Pick one of the cartridge's 32 voices. |
 | NAME | The voice name (10 characters, saved with STORE / VOICE). |
 | LOAD | Open a `.syx`: a cartridge replaces the bank, a single voice replaces the current voice. Checksum errors and raw (headerless) banks are accepted, as in Dexed. |
@@ -120,6 +121,26 @@ blocks), the 32-step velocity quantisation, the one-bit uncertainty of the
 feedback shift, detune law, and the multi-operator feedback taps of all 32
 algorithms from VDX7's ROM table (algorithms 4 and 6 use Dexed's version).
 
+## Classic sounds
+
+The eight factory ROM cartridges hold the presets heard on countless 80s
+records. Some well-documented uses (from Reverb Machine's song analyses):
+
+| Song | Voice |
+|---|---|
+| Whitney Houston, "Saving All My Love for You", "Greatest Love of All"; *Twin Peaks* theme | DX7_ROM1A 11 **E.PIANO 1** |
+| a-ha, "Take On Me" (bass) | DX7_ROM1A 15 **BASS 1**, add chorus |
+| a-ha, "Take On Me" (lead, layered with a Juno-60) | DX7_ROM2B 02 **SYN-LEAD 3** |
+| Berlin, "Take My Breath Away" | DX7_ROM1A 16 **BASS 2** |
+| Tina Turner, "What's Love Got to Do With It" | ROM1A **BASS 1**, ROM1B **CALIOPE**, an edited ROM1A **FLUTE 1** |
+| Queen, "Who Wants to Live Forever" | DX7_ROM2B 14 **SYN-ORCH** |
+
+Many records used these presets with studio effects (chorus, delay,
+reverb); add them in the DAW.
+
+All 228 banks of Dave Benson's DX7 archive (7296 voices) load and render
+with `cargo run --release --example syx_info -- *.syx`.
+
 ## Preset compatibility
 
 DXDX7 reads anything Dexed reads: `.syx` cartridges (also with a
@@ -132,7 +153,7 @@ hardware (through any SysEx tool).
 ## Build and test
 
 ```sh
-cargo test --release                              # 17 DSP, SysEx and plugin tests
+cargo test --release                              # 18 DSP, SysEx and plugin tests
 cargo test --release --features rt-paranoid       # also flags audio-thread allocation
 cargo run --release --example render -- 0 13 2 60 out.wav 3   # cart, voice, engine, note
 cargo truce validate                              # auval, pluginval, clap-validator
@@ -150,8 +171,10 @@ per-voice DAC), `resample.rs` (49.1 kHz to host, S&H + output filter),
 
 - FM engine ported from **Dexed** by Pascal Gauthier (GPL-3.0) and **msfa**
   by Raph Levien / Google (Apache-2.0).
-- Built-in cartridges: the banks distributed with Dexed (Dexed_01 and
-  SynprezFM 01-32).
+- Built-in cartridges: the Yamaha DX7 factory ROM cartridges 1A-4B
+  (voice data © Yamaha Corporation, as archived on Dave Benson's DX7
+  page), and the banks distributed with Dexed (Dexed_01 and SynprezFM
+  01-32).
 - Hardware research: Ken Shirriff's YM21280 die analysis, VDX7 by
   chiaccona, the ajxs DX7 firmware disassembly, Raph Levien's MSFA notes,
   Yamaha patents US 4,554,857, 4,249,447, 4,539,883.

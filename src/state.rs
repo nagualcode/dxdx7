@@ -27,12 +27,12 @@ pub struct PatchState {
 impl Default for PatchState {
     fn default() -> Self {
         // A fresh instance holds the INIT VOICE (the parameter defaults);
-        // the first built-in cartridge is ready to browse.
-        let cart = cartridges::builtin(0);
+        // the DX7 factory ROM1A cartridge is ready to browse.
+        let cart = cartridges::builtin(cartridges::ROM1A);
         Self {
             cart: cart.data.to_vec(),
-            cart_name: cartridges::BUILTIN[0].0.to_string(),
-            builtin: 0,
+            cart_name: cartridges::BUILTIN[cartridges::ROM1A].0.to_string(),
+            builtin: cartridges::ROM1A as i32,
             program: 0,
             voice_name: "INIT VOICE".into(),
         }
