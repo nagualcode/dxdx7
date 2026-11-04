@@ -12,30 +12,41 @@ flat, Ableton-style panel with the whole voice on one screen.
 
 ![DXDX7](screenshots/main.png)
 
-- Formats: **AU**, **VST3**, **CLAP** (macOS; builds on Windows/Linux from source)
+- Formats: **AU**, **VST3**, **CLAP** on macOS (Apple Silicon); **VST3**, **CLAP** on Windows and Linux (x64)
 - Reads and writes DX7 / Dexed SysEx: 32-voice cartridges (VMEM, 4104 bytes) and single voices (VCED)
 - 41 cartridges built in (1312 voices): the eight Yamaha DX7 factory ROMs
   and the 33 banks Dexed ships with
 - Every voice parameter is an automatable host parameter with real units
 
-## Install (macOS)
+## Install
 
-**Download**: the [latest release](https://github.com/nagualcode/dxdx7/releases/latest)
-has the Audio Unit for Apple Silicon. Unzip it, copy `DXDX7.component` to
-`~/Library/Audio/Plug-Ins/Components/`, and rescan in Ableton Live:
-*Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*. The build is not
-notarized; if macOS blocks it, run
-`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/DXDX7.component`.
+Download the zip for your system from the
+[latest release](https://github.com/nagualcode/dxdx7/releases/latest).
+The builds are made by GitHub Actions (`.github/workflows/build.yml`) and
+are not signed by a paid developer certificate.
 
-**From source**:
+| System | Zip | Copy to |
+|---|---|---|
+| macOS (Apple Silicon) | `DXDX7-<version>-macOS-arm64.zip` | `DXDX7.component` → `~/Library/Audio/Plug-Ins/Components/`, `DXDX7.vst3` → `~/Library/Audio/Plug-Ins/VST3/`, `DXDX7.clap` → `~/Library/Audio/Plug-Ins/CLAP/` |
+| Windows (x64) | `DXDX7-<version>-Windows-x64.zip` | `DXDX7.vst3` → `C:\Program Files\Common Files\VST3\`, `DXDX7.clap` → `C:\Program Files\Common Files\CLAP\` |
+| Linux (x64) | `DXDX7-<version>-Linux-x64.zip` | `DXDX7.vst3` → `~/.vst3/`, `DXDX7.clap` → `~/.clap/` |
+
+Then rescan plug-ins in the DAW. In Ableton Live on macOS:
+*Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*. If macOS blocks the
+plug-in, remove the download quarantine:
+`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/DXDX7.component`
+(same for the `.vst3` / `.clap`).
+
+The Windows and Linux builds pass the same tests as macOS in CI but have
+not been tried in a DAW yet; reports welcome.
+
+**From source** (needs Rust; on Linux the X11 / OpenGL / ALSA / JACK
+development packages listed in the workflow):
 
 ```sh
 cargo install cargo-truce
-cargo truce install        # builds and installs AU, VST3 and CLAP
+cargo truce install        # builds and installs the plug-ins for this system
 ```
-
-Bundles go to `~/Library/Audio/Plug-Ins/{Components,VST3,CLAP}`. Rescan in
-Ableton Live: *Plug-Ins › Audio Units › Jardim Sonoro › DXDX7*.
 
 ## Using it
 
